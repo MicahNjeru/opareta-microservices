@@ -1,0 +1,137 @@
+services:
+  # PostgreSQL for Service A (Authentication)
+  postgres-a:
+    image: postgres:15-alpine
+    container_name: postgres-a
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-a-data:/var/lib/postgresql/data
+    networks:
+      - payment-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL for Service B (Payments)
+  postgres-b:
+    image: postgres:15-alpine
+    container_name: postgres-b
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: payment_user
+      POSTGRES_PASSWORD: payment_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-b-data:/var/lib/postgresql/data
+    networks:
+      - payment-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payment_user -d payment_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and idempotency
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - payment-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+
+  # Service A - Authentication Service
+  service-a:
+    build:
+      context: ./service-a
+      dockerfile: Dockerfile
+    container_name: service-a
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: postgres-a
+      DB_PORT: 5432
+      DB_USERNAME: auth_user
+      DB_PASSWORD: auth_password
+      DB_DATABASE: auth_db
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
+      JWT_EXPIRATION: 24h
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres-a:
+        condition: service_healthy
+    networks:
+      - payment-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Service B - Payment Processing Service
+  service-b:
+    build:
+      context: ./service-b
+      dockerfile: Dockerfile
+    container_name: service-b
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DB_HOST: postgres-b
+      DB_PORT: 5432
+      DB_USERNAME: payment_user
+      DB_PASSWORD: payment_password
+      DB_DATABASE: payment_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      AUTH_SERVICE_URL: http://service-a:3001
+      CACHE_TTL: 300
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres-b:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      service-a:
+        condition: service_healthy
+    networks:
+      - payment-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  payment-network:
+    driver: bridge
+
+volumes:
+  postgres-a-data:
+    driver: local
+  postgres-b-data:
+    driver: local
+  redis-data:
+    driver: local
