@@ -4,8 +4,8 @@ import {
   UnauthorizedException,
   BadRequestException,
   Inject,
-  LoggerService,
 } from '@nestjs/common';
+import type { LoggerService } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
