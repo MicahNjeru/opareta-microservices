@@ -2,12 +2,12 @@ import {
   Injectable,
   NotFoundException,
   Inject,
-  LoggerService,
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Cache } from 'cache-manager';
+import type { Cache } from 'cache-manager';
+import type { LoggerService } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { v4 as uuidv4 } from 'uuid';
