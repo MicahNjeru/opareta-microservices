@@ -34,7 +34,7 @@ describe('AuthController', () => {
   describe('register', () => {
     it('should call authService.register and return result', async () => {
       const registerDto = {
-        phone_number: '+254700000000',
+        phone_number: '+256700000000',
         email: 'test@example.com',
         password: 'Test@1234',
       };
@@ -58,7 +58,7 @@ describe('AuthController', () => {
   describe('login', () => {
     it('should call authService.login and return token', async () => {
       const loginDto = {
-        phone_number: '+254700000000',
+        phone_number: '+256700000000',
         password: 'Test@1234',
       };
 
@@ -91,7 +91,7 @@ describe('AuthController', () => {
         valid: true,
         user: {
           id: '123',
-          phone_number: '+254700000000',
+          phone_number: '+256700000000',
           email: 'test@example.com',
           created_at: new Date(),
         },

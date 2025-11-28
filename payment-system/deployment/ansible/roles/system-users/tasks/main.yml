@@ -1,0 +1,102 @@
+---
+- name: Create deployment user group
+  group:
+    name: "{{ deploy_user }}"
+    state: present
+
+- name: Create deployment user
+  user:
+    name: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    groups: "{{ deploy_user_groups }}"
+    shell: "{{ deploy_user_shell }}"
+    create_home: yes
+    state: present
+
+- name: Set up authorized keys for deployment user
+  authorized_key:
+    user: "{{ deploy_user }}"
+    state: present
+    key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+  when: lookup('file', '~/.ssh/id_rsa.pub', errors='ignore') is defined
+  ignore_errors: yes
+
+- name: Create application directory
+  file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0755'
+
+- name: Create logs directory
+  file:
+    path: "{{ app_dir }}/logs"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0755'
+
+- name: Create backup directory
+  file:
+    path: "{{ backup_dir }}"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0755'
+
+- name: Configure passwordless sudo for deployment user - specific commands
+  copy:
+    content: |
+      # Allow deployer to manage Docker without password
+      {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /usr/local/bin/docker-compose
+      # Allow deployer to restart services
+      {{ deploy_user }} ALL=(ALL) NOPASSWD: /bin/systemctl restart *
+      # Allow deployer to check service status
+      {{ deploy_user }} ALL=(ALL) NOPASSWD: /bin/systemctl status *
+    dest: /etc/sudoers.d/{{ deploy_user }}
+    mode: '0440'
+    validate: 'visudo -cf %s'
+
+- name: Set proper permissions on user home directory
+  file:
+    path: "/home/{{ deploy_user }}"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0755'
+
+- name: Create .ssh directory for deployment user
+  file:
+    path: "/home/{{ deploy_user }}/.ssh"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0700'
+
+- name: Set bash profile for deployment user
+  copy:
+    content: |
+      # Custom bash profile for {{ deploy_user }}
+      export PATH=$PATH:/usr/local/bin
+      export EDITOR=vim
+      
+      # Docker aliases
+      alias dps='docker ps'
+      alias dlog='docker logs'
+      alias dexec='docker exec -it'
+      
+      # Application shortcuts
+      alias app='cd {{ app_dir }}'
+      alias logs='cd {{ app_dir }}/logs'
+    dest: "/home/{{ deploy_user }}/.bashrc"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0644'
+
+- name: Display deployment user info
+  debug:
+    msg: 
+      - "Deployment user '{{ deploy_user }}' created successfully"
+      - "Home directory: /home/{{ deploy_user }}"
+      - "Application directory: {{ app_dir }}"
+      - "Backup directory: {{ backup_dir }}"

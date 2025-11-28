@@ -63,9 +63,9 @@ describe('PaymentsController', () => {
     it('should call paymentsService.initiatePayment and return result', async () => {
       const createDto = {
         amount: 10000,
-        currency: Currency.KES,
+        currency: Currency.UGX,
         payment_method: PaymentMethod.MOBILE_MONEY,
-        customer_phone: '+254700000000',
+        customer_phone: '+256700000000',
         customer_email: 'test@example.com',
       };
 
@@ -93,9 +93,9 @@ describe('PaymentsController', () => {
         id: '123',
         reference: 'ref-123',
         amount: 10000,
-        currency: Currency.KES,
+        currency: Currency.UGX,
         payment_method: PaymentMethod.MOBILE_MONEY,
-        customer_phone: '+254700000000',
+        customer_phone: '+256700000000',
         customer_email: 'test@example.com',
         status: PaymentStatus.INITIATED,
         created_at: new Date(),
@@ -124,9 +124,9 @@ describe('PaymentsController', () => {
         id: '123',
         reference: 'ref-123',
         amount: 10000,
-        currency: Currency.KES,
+        currency: Currency.UGX,
         payment_method: PaymentMethod.MOBILE_MONEY,
-        customer_phone: '+254700000000',
+        customer_phone: '+256700000000',
         customer_email: 'test@example.com',
         status: PaymentStatus.PENDING,
         provider_transaction_id: 'TXN123',

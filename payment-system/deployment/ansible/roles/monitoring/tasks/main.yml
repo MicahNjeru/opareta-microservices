@@ -1,0 +1,100 @@
+---
+- name: Create node_exporter user
+  user:
+    name: node_exporter
+    shell: /bin/false
+    system: yes
+    create_home: no
+
+- name: Download Node Exporter
+  get_url:
+    url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+    dest: /tmp/node_exporter.tar.gz
+    mode: '0644'
+
+- name: Extract Node Exporter
+  unarchive:
+    src: /tmp/node_exporter.tar.gz
+    dest: /tmp
+    remote_src: yes
+
+- name: Copy Node Exporter binary to /usr/local/bin
+  copy:
+    src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+    dest: /usr/local/bin/node_exporter
+    owner: node_exporter
+    group: node_exporter
+    mode: '0755'
+    remote_src: yes
+
+- name: Create Node Exporter systemd service file
+  copy:
+    content: |
+      [Unit]
+      Description=Node Exporter
+      After=network.target
+
+      [Service]
+      User=node_exporter
+      Group=node_exporter
+      Type=simple
+      ExecStart=/usr/local/bin/node_exporter \
+        --web.listen-address=:{{ node_exporter_port }} \
+        --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/node_exporter.service
+    mode: '0644'
+  notify: restart node_exporter
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+
+- name: Enable and start Node Exporter service
+  systemd:
+    name: node_exporter
+    state: started
+    enabled: yes
+
+- name: Wait for Node Exporter to be ready
+  wait_for:
+    port: "{{ node_exporter_port }}"
+    delay: 5
+    timeout: 30
+
+- name: Verify Node Exporter is running
+  uri:
+    url: "http://localhost:{{ node_exporter_port }}/metrics"
+    return_content: yes
+  register: node_exporter_metrics
+  failed_when: false
+
+- name: Display Node Exporter status
+  debug:
+    msg: "Node Exporter is running on port {{ node_exporter_port }}"
+  when: node_exporter_metrics.status == 200
+
+- name: Configure logrotate for application logs
+  copy:
+    content: |
+      {{ app_dir }}/logs/*.log {
+        daily
+        rotate 7
+        compress
+        delaycompress
+        notifempty
+        missingok
+        create 0644 {{ deploy_user }} {{ deploy_user }}
+      }
+    dest: /etc/logrotate.d/payment-system
+    mode: '0644'
+
+- name: Clean up downloaded files
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/node_exporter.tar.gz
+    - "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64"

@@ -4,7 +4,7 @@ export class UserResponseDto {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
   id: string;
 
-  @ApiProperty({ example: '+254700000000' })
+  @ApiProperty({ example: '+256700000000' })
   phone_number: string;
 
   @ApiProperty({ example: 'user@example.com' })

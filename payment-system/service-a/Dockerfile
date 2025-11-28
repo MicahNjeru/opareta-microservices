@@ -20,8 +20,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
+# Install curl and wget for healthcheck
+RUN apk add --no-cache curl wget
 
 # Copy package files
 COPY package*.json ./

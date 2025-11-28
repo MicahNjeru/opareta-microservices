@@ -15,7 +15,7 @@ export enum PaymentStatus {
 }
 
 export enum Currency {
-  KES = 'KES',
+  UGX = 'UGX',
   USD = 'USD',
 }
 

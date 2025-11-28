@@ -3,7 +3,7 @@ import { IsNotEmpty, IsString } from 'class-validator';
 
 export class LoginDto {
   @ApiProperty({
-    example: '+254700000000',
+    example: '+256700000000',
     description: 'User phone number',
   })
   @IsNotEmpty()

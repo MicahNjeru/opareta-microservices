@@ -1,0 +1,29 @@
+[Unit]
+Description=PostgreSQL Backup Service
+Documentation=file:///opt/payment-system/deployment/docs/BACKUP_RESTORE.md
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=deployer
+Group=deployer
+WorkingDirectory=/opt/payment-system/deployment
+
+# Environment variables
+Environment="BACKUP_DIR=/opt/backups"
+Environment="RETENTION_DAYS=7"
+
+# Execute backup script
+ExecStart=/opt/payment-system/deployment/scripts/backup-postgres.sh
+
+# Logging
+StandardOutput=append:/opt/backups/backup.log
+StandardError=append:/opt/backups/backup.log
+
+# Restart policy
+Restart=on-failure
+RestartSec=300
+
+[Install]
+WantedBy=multi-user.target

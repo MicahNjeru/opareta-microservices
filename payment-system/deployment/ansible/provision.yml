@@ -1,0 +1,110 @@
+---
+- name: Provision Payment System Infrastructure
+  hosts: production
+  become: yes
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Display target host information
+      debug:
+        msg:
+          - "Provisioning server: {{ inventory_hostname }}"
+          - "IP Address: {{ ansible_host }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Upgrade all packages to latest version
+      apt:
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
+      when: perform_system_upgrade | default(false) | bool
+
+    - name: Install basic utilities
+      apt:
+        name:
+          - vim
+          - git
+          - curl
+          - wget
+          - htop
+          - net-tools
+          - unzip
+          - jq
+          - python3-pip
+          - python3-setuptools
+        state: present
+
+    - name: Install Python Docker library for Ansible Docker modules
+      pip:
+        name:
+          - docker
+          - docker-compose
+        state: present
+
+    - name: Set timezone
+      timezone:
+        name: "{{ system_timezone }}"
+
+    - name: Ensure hostname is set correctly
+      hostname:
+        name: "{{ inventory_hostname }}"
+
+  roles:
+    - role: system-users
+      tags: ['users', 'setup']
+
+    - role: firewall
+      tags: ['firewall', 'security']
+
+    - role: ssh-hardening
+      tags: ['ssh', 'security']
+
+    - role: docker
+      tags: ['docker', 'setup']
+
+    - role: monitoring
+      tags: ['monitoring', 'setup']
+
+  post_tasks:
+    - name: Display provisioning summary
+      debug:
+        msg:
+          - "===== Provisioning Complete ====="
+          - "Server: {{ inventory_hostname }}"
+          - "Application directory: {{ app_dir }}"
+          - "Deployment user: {{ deploy_user }}"
+          - "Docker version: {{ docker_version.stdout | default('Not checked') }}"
+          - "Firewall: UFW enabled"
+          - "SSH: Hardened (no root, no password auth)"
+          - "Monitoring: Node Exporter on port {{ node_exporter_port }}"
+          - ""
+          - "Next steps:"
+          - "1. Deploy application using docker-compose"
+          - "2. Configure Nginx reverse proxy"
+          - "3. Set up SSL certificates"
+          - "4. Configure monitoring (Prometheus & Grafana)"
+
+    - name: Create deployment timestamp
+      copy:
+        content: |
+          Provisioning completed at: {{ ansible_date_time.iso8601 }}
+          Provisioned by: {{ ansible_user_id }}
+          Playbook: provision.yml
+        dest: "{{ app_dir }}/provisioned.txt"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: '0644'
+
+    - name: Reboot server if kernel was updated
+      reboot:
+        reboot_timeout: 300
+        msg: "Rebooting server after kernel update"
+      when: 
+        - perform_system_upgrade | default(false) | bool
+        - ansible_facts.packages is defined
+      tags: ['never', 'reboot']

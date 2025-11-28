@@ -11,13 +11,13 @@ export class PaymentResponseDto {
   @ApiProperty({ example: 10000 })
   amount: number;
 
-  @ApiProperty({ example: 'KES', enum: Currency })
+  @ApiProperty({ example: 'UGX', enum: Currency })
   currency: Currency;
 
   @ApiProperty({ example: 'MOBILE_MONEY', enum: PaymentMethod })
   payment_method: PaymentMethod;
 
-  @ApiProperty({ example: '+254700000000' })
+  @ApiProperty({ example: '+256700000000' })
   customer_phone: string;
 
   @ApiProperty({ example: 'customer@example.com' })

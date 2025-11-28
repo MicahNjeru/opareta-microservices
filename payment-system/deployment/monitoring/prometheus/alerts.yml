@@ -1,0 +1,226 @@
+# Prometheus Alert Rules for Payment System
+
+groups:
+  - name: service_health
+    interval: 30s
+    rules:
+      # Service A down
+      - alert: ServiceADown
+        expr: up{job="service-a"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: auth
+        annotations:
+          summary: "Service A instance is down"
+          description: "Service A instance {{ $labels.instance }} has been down for more than 1 minute."
+
+      # Service B down
+      - alert: ServiceBDown
+        expr: up{job="service-b"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: payment
+        annotations:
+          summary: "Service B instance is down"
+          description: "Service B instance {{ $labels.instance }} has been down for more than 1 minute."
+
+      # All Service A instances down
+      - alert: AllServiceAInstancesDown
+        expr: count(up{job="service-a"} == 1) == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: auth
+        annotations:
+          summary: "All Service A instances are down"
+          description: "All authentication service instances are unavailable."
+
+      # All Service B instances down
+      - alert: AllServiceBInstancesDown
+        expr: count(up{job="service-b"} == 1) == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: payment
+        annotations:
+          summary: "All Service B instances are down"
+          description: "All payment service instances are unavailable."
+
+  - name: error_rates
+    interval: 30s
+    rules:
+      # High HTTP error rate (5xx)
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m])) 
+            / 
+            sum(rate(http_requests_total[5m]))
+          ) * 100 > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HTTP error rate detected"
+          description: "Error rate is {{ $value | humanize }}% (threshold: 5%)"
+
+      # Very high error rate
+      - alert: CriticalErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m])) 
+            / 
+            sum(rate(http_requests_total[5m]))
+          ) * 100 > 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical HTTP error rate"
+          description: "Error rate is {{ $value | humanize }}% (threshold: 10%)"
+
+  - name: performance
+    interval: 30s
+    rules:
+      # High response time
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, job)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time (p95)"
+          description: "95th percentile response time is {{ $value | humanize }}s for {{ $labels.job }}"
+
+      # Very high response time
+      - alert: VeryHighResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, job)
+          ) > 2
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Very high response time (p95)"
+          description: "95th percentile response time is {{ $value | humanize }}s for {{ $labels.job }}"
+
+  - name: system_resources
+    interval: 30s
+    rules:
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+
+      # Critical CPU usage
+      - alert: CriticalCPUUsage
+        expr: |
+          100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical CPU usage"
+          description: "CPU usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+
+      # Critical memory usage
+      - alert: CriticalMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical memory usage"
+          description: "Memory usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+
+      # Low disk space
+      - alert: LowDiskSpace
+        expr: |
+          (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space"
+          description: "Disk usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+
+      # Critical disk space
+      - alert: CriticalDiskSpace
+        expr: |
+          (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical disk space"
+          description: "Disk usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+
+  - name: database
+    interval: 30s
+    rules:
+      # Too many database connections - if exporter available
+      # - alert: HighDatabaseConnections
+      #   expr: pg_stat_activity_count > 80
+      #   for: 5m
+      #   labels:
+      #     severity: warning
+      #   annotations:
+      #     summary: "High number of database connections"
+      #     description: "Database has {{ $value }} active connections"
+
+  - name: payment_specific
+    interval: 30s
+    rules:
+      # High payment failure rate
+      - alert: HighPaymentFailureRate
+        expr: |
+          (
+            sum(rate(payments_total{status="FAILED"}[10m]))
+            /
+            sum(rate(payments_total[10m]))
+          ) * 100 > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High payment failure rate"
+          description: "Payment failure rate is {{ $value | humanize }}%"
+
+      # Very high payment failure rate
+      - alert: CriticalPaymentFailureRate
+        expr: |
+          (
+            sum(rate(payments_total{status="FAILED"}[10m]))
+            /
+            sum(rate(payments_total[10m]))
+          ) * 100 > 20
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical payment failure rate"
+          description: "Payment failure rate is {{ $value | humanize }}%"

@@ -1,0 +1,92 @@
+---
+- name: Install UFW (Uncomplicated Firewall)
+  apt:
+    name: ufw
+    state: present
+    update_cache: yes
+
+- name: Reset UFW to default settings
+  ufw:
+    state: reset
+  ignore_errors: yes
+
+- name: Set UFW default policy - deny incoming
+  ufw:
+    direction: incoming
+    policy: deny
+
+- name: Set UFW default policy - allow outgoing
+  ufw:
+    direction: outgoing
+    policy: allow
+
+- name: Allow SSH access IMPORTANT!!! - DO THIS BEFORE ENABLING UFW
+  ufw:
+    rule: allow
+    port: "{{ ssh_port }}"
+    proto: tcp
+    comment: "SSH access"
+
+- name: Allow TCP ports through firewall
+  ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop: "{{ firewall_allowed_tcp_ports }}"
+  when: firewall_allowed_tcp_ports is defined
+
+- name: Allow UDP ports through firewall
+  ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: udp
+  loop: "{{ firewall_allowed_udp_ports }}"
+  when: firewall_allowed_udp_ports is defined
+
+- name: Deny external access to restricted ports (PostgreSQL, Redis, etc)
+  ufw:
+    rule: deny
+    port: "{{ item }}"
+    from_ip: any
+    comment: "Deny external access - internal use only"
+  loop: "{{ restricted_ports }}"
+  when: restricted_ports is defined
+
+- name: Enable UFW
+  ufw:
+    state: enabled
+
+- name: Check UFW status
+  command: ufw status verbose
+  register: ufw_status
+  changed_when: false
+
+- name: Display UFW status
+  debug:
+    msg: "{{ ufw_status.stdout_lines }}"
+
+- name: Install fail2ban for additional SSH protection
+  apt:
+    name: fail2ban
+    state: present
+
+- name: Create fail2ban SSH jail configuration
+  copy:
+    content: |
+      [sshd]
+      enabled = true
+      port = {{ ssh_port }}
+      filter = sshd
+      logpath = /var/log/auth.log
+      maxretry = 3
+      bantime = 3600
+      findtime = 600
+    dest: /etc/fail2ban/jail.d/sshd.conf
+    mode: '0644'
+  notify: restart fail2ban
+
+- name: Ensure fail2ban is started and enabled
+  systemd:
+    name: fail2ban
+    state: started
+    enabled: yes

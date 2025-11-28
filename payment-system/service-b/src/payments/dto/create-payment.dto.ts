@@ -22,7 +22,7 @@ export class CreatePaymentDto {
   amount: number;
 
   @ApiProperty({
-    example: 'KES',
+    example: 'UGX',
     enum: Currency,
     description: 'Payment currency',
   })
@@ -40,7 +40,7 @@ export class CreatePaymentDto {
   payment_method: PaymentMethod;
 
   @ApiProperty({
-    example: '+254700000000',
+    example: '+256700000000',
     description: 'Customer phone number',
   })
   @IsNotEmpty()

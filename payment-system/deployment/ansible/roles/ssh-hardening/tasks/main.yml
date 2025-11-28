@@ -1,0 +1,143 @@
+---
+- name: Backup original SSH config
+  copy:
+    src: /etc/ssh/sshd_config
+    dest: /etc/ssh/sshd_config.backup
+    remote_src: yes
+    force: no
+
+- name: Configure SSH - Disable root login
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin'
+    line: "PermitRootLogin {{ ssh_permit_root_login }}"
+    state: present
+  notify: restart sshd
+
+- name: Configure SSH - Disable password authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication'
+    line: "PasswordAuthentication {{ ssh_password_authentication }}"
+    state: present
+  notify: restart sshd
+
+- name: Configure SSH - Enable public key authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PubkeyAuthentication'
+    line: "PubkeyAuthentication {{ ssh_pubkey_authentication }}"
+    state: present
+  notify: restart sshd
+
+- name: Configure SSH - Disable challenge response authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?ChallengeResponseAuthentication'
+    line: "ChallengeResponseAuthentication {{ ssh_challenge_response_auth }}"
+    state: present
+  notify: restart sshd
+
+- name: Configure SSH - Disable empty passwords
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitEmptyPasswords'
+    line: "PermitEmptyPasswords no"
+    state: present
+  notify: restart sshd
+
+- name: Configure SSH - Disable X11 forwarding
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?X11Forwarding'
+    line: "X11Forwarding {{ ssh_x11_forwarding }}"
+    state: present
+  notify: restart sshd
+
+- name: Configure SSH - Set maximum authentication tries
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?MaxAuthTries'
+    line: "MaxAuthTries {{ ssh_max_auth_tries }}"
+    state: present
+  notify: restart sshd
+
+- name: Configure SSH - Set client alive interval
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?ClientAliveInterval'
+    line: "ClientAliveInterval {{ ssh_client_alive_interval }}"
+    state: present
+  notify: restart sshd
+
+- name: Configure SSH - Set client alive count max
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?ClientAliveCountMax'
+    line: "ClientAliveCountMax {{ ssh_client_alive_count_max }}"
+    state: present
+  notify: restart sshd
+
+- name: Configure SSH - Use PAM
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?UsePAM'
+    line: "UsePAM {{ ssh_use_pam }}"
+    state: present
+  notify: restart sshd
+
+- name: Configure SSH - Disable host-based authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?HostbasedAuthentication'
+    line: "HostbasedAuthentication no"
+    state: present
+  notify: restart sshd
+
+- name: Configure SSH - Disable GSS API authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?GSSAPIAuthentication'
+    line: "GSSAPIAuthentication no"
+    state: present
+  notify: restart sshd
+
+- name: Configure SSH - Set login grace time
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?LoginGraceTime'
+    line: "LoginGraceTime 60"
+    state: present
+  notify: restart sshd
+
+- name: Create SSH banner file
+  copy:
+    content: |
+      ******************************************************************
+      *                      AUTHORIZED ACCESS ONLY                    *
+      *                                                                *
+      * This system is for authorized use only. Unauthorized access   *
+      * is prohibited and may be subject to criminal prosecution.     *
+      *                                                                *
+      * All activities on this system are logged and monitored.       *
+      ******************************************************************
+    dest: /etc/ssh/banner
+    mode: '0644'
+
+- name: Configure SSH - Set banner
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?Banner'
+    line: "Banner /etc/ssh/banner"
+    state: present
+  notify: restart sshd
+
+- name: Validate SSH configuration
+  command: sshd -t
+  changed_when: false
+  register: sshd_test
+
+- name: Display SSH configuration test result
+  debug:
+    msg: "SSH configuration is valid"
+  when: sshd_test.rc == 0

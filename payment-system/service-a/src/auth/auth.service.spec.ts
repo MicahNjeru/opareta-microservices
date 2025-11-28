@@ -60,7 +60,7 @@ describe('AuthService', () => {
 
   describe('register', () => {
     const registerDto = {
-      phone_number: '+254700000000',
+      phone_number: '+256700000000',
       email: 'test@example.com',
       password: 'Test@1234',
     };
@@ -114,7 +114,7 @@ describe('AuthService', () => {
 
   describe('login', () => {
     const loginDto = {
-      phone_number: '+254700000000',
+      phone_number: '+256700000000',
       password: 'Test@1234',
     };
 
@@ -165,13 +165,13 @@ describe('AuthService', () => {
     it('should return valid:true for valid token', async () => {
       const mockPayload = {
         sub: '123',
-        phone_number: '+254700000000',
+        phone_number: '+256700000000',
         email: 'test@example.com',
       };
 
       const mockUser = {
         id: '123',
-        phone_number: '+254700000000',
+        phone_number: '+256700000000',
         email: 'test@example.com',
         created_at: new Date(),
         updated_at: new Date(),

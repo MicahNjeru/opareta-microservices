@@ -91,7 +91,7 @@ describe('AuthGuard', () => {
     it('should return true for valid token from cache', async () => {
       const mockValidation = {
         valid: true,
-        user: { id: '123', phone_number: '+254700000000' },
+        user: { id: '123', phone_number: '+256700000000' },
       };
 
       mockCacheManager.get.mockResolvedValue(mockValidation);
@@ -106,7 +106,7 @@ describe('AuthGuard', () => {
     it('should validate token with Service A if not cached', async () => {
       const mockValidation = {
         valid: true,
-        user: { id: '123', phone_number: '+254700000000' },
+        user: { id: '123', phone_number: '+256700000000' },
       };
 
       mockCacheManager.get.mockResolvedValue(null);

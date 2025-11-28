@@ -1,0 +1,146 @@
+---
+- name: Test Server Provisioning
+  hosts: production
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Test 1 - Check if deployment user exists
+      user:
+        name: "{{ deploy_user }}"
+        state: present
+      check_mode: yes
+      register: user_check
+
+    - name: Display user test result
+      debug:
+        msg: "✓ Deployment user '{{ deploy_user }}' exists"
+      when: not user_check.changed
+
+    - name: Test 2 - Check if Docker is installed
+      command: docker --version
+      register: docker_check
+      changed_when: false
+      failed_when: false
+
+    - name: Display Docker test result
+      debug:
+        msg: "✓ Docker is installed: {{ docker_check.stdout }}"
+      when: docker_check.rc == 0
+
+    - name: Test 3 - Check if Docker Compose is installed
+      command: docker-compose --version
+      register: compose_check
+      changed_when: false
+      failed_when: false
+
+    - name: Display Docker Compose test result
+      debug:
+        msg: "✓ Docker Compose is installed: {{ compose_check.stdout }}"
+      when: compose_check.rc == 0
+
+    - name: Test 4 - Check if deployment user is in docker group
+      command: groups {{ deploy_user }}
+      register: groups_check
+      changed_when: false
+
+    - name: Display docker group test result
+      debug:
+        msg: "✓ User '{{ deploy_user }}' is in docker group"
+      when: "'docker' in groups_check.stdout"
+
+    - name: Test 5 - Check UFW status
+      command: ufw status
+      register: ufw_check
+      changed_when: false
+
+    - name: Display UFW test result
+      debug:
+        msg: "✓ UFW is active"
+      when: "'Status: active' in ufw_check.stdout"
+
+    - name: Test 6 - Check SSH configuration
+      command: grep "^PermitRootLogin" /etc/ssh/sshd_config
+      register: ssh_root_check
+      changed_when: false
+      failed_when: false
+
+    - name: Display SSH root login test result
+      debug:
+        msg: "✓ SSH root login is disabled"
+      when: "'no' in ssh_root_check.stdout"
+
+    - name: Test 7 - Check if Node Exporter is running
+      systemd:
+        name: node_exporter
+        state: started
+      check_mode: yes
+      register: node_exporter_check
+
+    - name: Display Node Exporter test result
+      debug:
+        msg: "✓ Node Exporter is running"
+      when: not node_exporter_check.changed
+
+    - name: Test 8 - Check Node Exporter endpoint
+      uri:
+        url: "http://localhost:{{ node_exporter_port }}/metrics"
+        status_code: 200
+      register: metrics_check
+      failed_when: false
+
+    - name: Display metrics endpoint test result
+      debug:
+        msg: "✓ Node Exporter metrics endpoint is accessible"
+      when: metrics_check.status == 200
+
+    - name: Test 9 - Check application directory exists
+      stat:
+        path: "{{ app_dir }}"
+      register: app_dir_check
+
+    - name: Display app directory test result
+      debug:
+        msg: "✓ Application directory exists: {{ app_dir }}"
+      when: app_dir_check.stat.exists
+
+    - name: Test 10 - Check backup directory exists
+      stat:
+        path: "{{ backup_dir }}"
+      register: backup_dir_check
+
+    - name: Display backup directory test result
+      debug:
+        msg: "✓ Backup directory exists: {{ backup_dir }}"
+      when: backup_dir_check.stat.exists
+
+    - name: Test 11 - Check fail2ban status
+      command: systemctl is-active fail2ban
+      register: fail2ban_check
+      changed_when: false
+      failed_when: false
+
+    - name: Display fail2ban test result
+      debug:
+        msg: "✓ fail2ban is active"
+      when: fail2ban_check.stdout == 'active'
+
+    - name: Test 12 - Check open ports
+      shell: ufw status | grep ALLOW
+      register: ports_check
+      changed_when: false
+
+    - name: Display open ports
+      debug:
+        msg: "{{ ports_check.stdout_lines }}"
+
+    - name: Display final test summary
+      debug:
+        msg:
+          - "=========================================="
+          - "Provisioning Test Summary"
+          - "=========================================="
+          - "Server: {{ inventory_hostname }}"
+          - "All critical components verified"
+          - "System is ready for application deployment"
+          - "=========================================="

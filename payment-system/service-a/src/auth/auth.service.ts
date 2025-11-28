@@ -108,9 +108,7 @@ export class AuthService {
     };
   }
 
-  async validateToken(
-    validateTokenDto: ValidateTokenDto,
-  ): Promise<ValidateTokenResponseDto> {
+  async validateToken(validateTokenDto: ValidateTokenDto,): Promise<ValidateTokenResponseDto> {
     const { token } = validateTokenDto;
 
     try {

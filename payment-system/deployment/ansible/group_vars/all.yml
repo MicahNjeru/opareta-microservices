@@ -1,0 +1,65 @@
+---
+# Global variables for all hosts
+
+# Application settings
+app_name: payment-system
+app_user: deployer
+app_group: deployer
+app_dir: /opt/payment-system
+
+# Docker settings
+docker_edition: ce
+docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-compose-plugin
+
+docker_users:
+  - "{{ app_user }}"
+
+# Firewall settings
+firewall_allowed_tcp_ports:
+  - 22    # SSH
+  - 80    # HTTP
+  - 443   # HTTPS
+
+firewall_allowed_udp_ports: []
+
+# Restricted ports - accessible only from localhost
+restricted_ports:
+  - 5432  # PostgreSQL A
+  - 5433  # PostgreSQL B
+  - 6379  # Redis
+  - 9090  # Prometheus
+  - 9100  # Node Exporter
+
+# SSH hardening settings
+ssh_port: 22
+ssh_permit_root_login: "no"
+ssh_password_authentication: "no"
+ssh_pubkey_authentication: "yes"
+ssh_challenge_response_auth: "no"
+ssh_use_pam: "yes"
+ssh_x11_forwarding: "no"
+ssh_max_auth_tries: 3
+ssh_client_alive_interval: 300
+ssh_client_alive_count_max: 2
+
+# System user settings
+deploy_user: deployer
+deploy_user_shell: /bin/bash
+deploy_user_groups:
+  - sudo
+  - docker
+
+# Monitoring settings
+node_exporter_version: "1.7.0"
+node_exporter_port: 9100
+
+# Backup settings
+backup_dir: /opt/backups
+backup_retention_days: 7
+
+# Timezone
+system_timezone: UTC
